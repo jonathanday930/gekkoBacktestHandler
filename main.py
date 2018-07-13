@@ -5,11 +5,13 @@ import mysql.connector
 
 
 class trade:
-    table_name = 'USDT:BTC_Binance_BULL_BEAR_RSI_DailyTests'
+    daysInTrade = 0
+
     basic_params = {
         'currency' : '',
         'asset' : '',
         'strategy' : '',
+        'exchange' : '',
         'percent_change' : '',
         'market_change' : '',
         'winning_trades' : '',
@@ -25,40 +27,84 @@ class trade:
 
     }
 
-    strategy_params = ''
+    strategy_params = {}
 
-    def __init__(self, line ):
-        self.basic_params['currency'] = line[0]
-        self.basic_params['asset']= line[1]
-        self.basic_params['strategy'] = line[2]
-        self.basic_params ['percent_change'] = line[3]
-        self.basic_params ['market_change'] = line[4]
-        self.basic_params ['winning_trades'] = line[5]
-        self.basic_params ['best_win'] = line [6]
-        self.basic_params ['worst_loss'] = line[7]
-        self.basic_params ['avg_HODL_min'] = line[8]
-        self.basic_params ['candle_size_min'] = line[9]
-        self.basic_params ['history_size_min'] = line[10]
-        self.basic_params ['total_trades'] = line[11]
-        self.basic_params ['start_date'] = line[12]
-        self.basic_params ['end_date'] = line[13]
-        self.basic_params ['note'] = line[15]
+    def getTableName(self):
+        return str(self.basic_params['currency']) + '_' + str(self.basic_params['asset']) + '_' + \
+               str(self.basic_params['exchange'])+ '_' + str(self.daysInTrade) + 'daySegments'
+
+
+
+    def insertLine(self, line, cursor):
+        self.basic_params['T_currency'] = line[0]
+        self.basic_params['T_asset']= line[1]
+        self.basic_params['T_strategy'] = line[2].split()[0]
+        self.basic_params['T_exchange'] = line[3]
+        self.basic_params ['percent_change'] = line[4]
+        self.basic_params ['market_change'] = line[5]
+        self.basic_params ['winning_trades'] = line[6]
+        self.basic_params ['best_win'] = line [7]
+        self.basic_params ['worst_loss'] = line[8]
+        self.basic_params ['avg_HODL_min'] = line[9]
+        self.basic_params ['candle_size_min'] = line[10]
+        self.basic_params ['history_size_min'] = line[11]
+        self.basic_params ['total_trades'] = line[12]
+        self.basic_params ['T_start_date'] = line[13]
+        self.basic_params ['T_end_date'] = line[14]
+        self.basic_params ['T_note'] = line[16]
         self.strategyParse(line)
+
+        self.createIfNeeded(cursor)
+
+
+
+    def absorbTOML(self,tomlFileName):
+        self.strategy_params = {}
+        tomlFile = open("/home/jonathan/gekkoconfig/strategies/" + tomlFileName + ".toml", "r")
+
+        for line in tomlFile:
+            if line[0] == '#' or line[0] == '[':
+                pass
+            else:
+                words = line.split()
+                self.strategy_params[words[0]] = -1
+
 
 
     def createIfNeeded(self,cursor):
 
-        test = "SELECT * FROM gekkoTests." + self.table_name
+        test = "SELECT * FROM gekkoTests." + self.getTableName()
         cursor.execute(test)
-
         if cursor.fetchAll.__len__() == 0:
-            create = "create table " + self.table_name + ""
-            pass
-        #WORK IN PROGRESS
+            create = "create table " + self.getTableName() + "(Test_ID int(10) unsigned NOT NULL AUTO_INCREMENT, " \
+                                                         "Initial_Assets double NOT NULL, Initial_Currency double NOT" \
+                                                             " NULL,"
+            for param in sorted(self.basic_params):
+                type = " double"
+                if(param[0]+param[1] =="T_"):
+                    type = " tinytext"
+                create = create + ", " + str(param) + type + " NOT NULL"
 
-    @abstractmethod
+            for param in sorted(self.strategy_param):
+                create = create + ", " + str(param) + " double NOT NULL"
+
+            create = create + ", PRIMARY KEY (Test_ID)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 DEFAULT " \
+                              "COLLATE=utf8mb4_general_ci COMMENT='Contains backtests"
+        cursor.execute(create)
+
     def strategyParse(self, line):
-        pass
+        params = line[14].split()
+        current_Var = 'nope'
+        for word in params:
+            if word[0] == '=' or word[0] == '[':
+                pass
+            else:
+                if current_Var != 'nope':
+                    self.strategy_params[current_Var] = int(word)
+                    current_Var = 'nope'
+                else:
+                    if self.strategy_params.get(word,'none') != 'none':
+                        current_Var = word
 
 class bull_bear_rsi(trade):
 
@@ -85,19 +131,7 @@ class bull_bear_rsi(trade):
     def ___init__(self):
         ADX = 0
 
-    def strategyParse(self, line):
-        params = line[14].split()
-        current_Var = 'nope'
-        for word in params:
-            if word[0] == '=' or word[0] == '[':
-                pass
-            else:
-                if current_Var != 'nope':
-                    self.strategy_params[current_Var] = int(word)
-                    current_Var = 'nope'
-                else:
-                    if self.strategy_params.get(word,'none') != 'none':
-                        current_Var = word
+
 
 
     def insert(self,cursor):
@@ -127,8 +161,7 @@ class bull_bear_rsi(trade):
             sql += " , " + str(self.strategy_params[strat_params_names[value]])
 
         sql += " ) "
-
-        print sql
+        print(sql)
 
 
 def main():
@@ -136,11 +169,17 @@ def main():
     #start_date = '2018-04-03'
     #end_date = '2018-04-04'
 
-    file = 'C:\Users\juliann\PycharmProjects\gekkoHandler\database.csv'
+    #file = 'C:\Users\juliann\PycharmProjects\gekkoHandler\database.csv'
     #os.system('sudo rm ' + file)
     #os.system('sudo touch ' + file)
 
     #os.system('sudo perl backtest.pl - f ' + start_date + '- t ' + end_date);
+
+
+    print("hello BITCH")
+
+
+
 
     cnx = mysql.connector.connect(user='remote', password='remote',
                                   host='192.168.0.11',
@@ -161,9 +200,6 @@ def main():
         # strategy settings here
 
 
-
-
-    print 'hi'
 
 
 if __name__ == "__main__":
