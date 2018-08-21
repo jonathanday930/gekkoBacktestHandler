@@ -13,7 +13,6 @@ def main():
     cnx = mysql.connector.connect(user='remote', password='remote',
                                   host='192.168.0.16',
                                   database='gekkoTests')
-    print("hello BITCH")
 
 
     startingDate = datetime(2018,7,24)
