@@ -11,26 +11,44 @@ from trade import trade
 def main():
 
     cnx = mysql.connector.connect(user='remote', password='remote',
-                                  host='192.168.0.11',
+                                  host='192.168.0.16',
                                   database='gekkoTests')
     print("hello BITCH")
 
-    startingDate = datetime(2018,4,14)
+
+    startingDate = datetime(2018,7,24)
 
    # startingDate.date.replace()
 
-    dateDelta = 1
-    currencyToTrade = 'BTC'
-    assetToTrade = 'VEN'
-    candle_Size_Minutes = 10
-    warmup_Size_Minutes = 10
+    dateDelta = 30
+    currencyToTrade = 'ETH'
+    assetToTrade = 'V'
+    candle_Size_Minutes = 15
+    warmup_Size_Minutes = 55
     tradeExchange = 'binance'
-    Initial_Assets = 0
-    Initial_Currency = 1
-    strat = 'MACD'
-    newTrade = trade(startingDate, dateDelta, currencyToTrade, assetToTrade, candle_Size_Minutes, warmup_Size_Minutes,
+    Initial_Assets = 100
+    Initial_Currency = 100
+    strat = 'McKee_EMA_RSI_Strat_Stoploss'
+    trader = trade(startingDate, dateDelta, currencyToTrade, assetToTrade, candle_Size_Minutes, warmup_Size_Minutes,
                      tradeExchange, Initial_Assets, Initial_Currency, strat, cnx)
-    newTrade.run()
+    #trader.run(True)
+
+    #trader.Initial_Assets = 100
+    #trader.Initial_Currency = 0
+
+    #trader.run(False)
+
+
+
+    while True:
+        trader.start_date = trader.start_date - timedelta(dateDelta)
+        trader.asset = 'EOS'
+        trader.run(False)
+        trader.asset = 'ZRX'
+        trader.run(False)
+        trader.asset = 'TRX'
+        trader.run(True)
+
 
 
 if __name__ == "__main__":

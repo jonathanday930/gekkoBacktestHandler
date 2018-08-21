@@ -17,8 +17,8 @@ class exporter:
     def insertLine(self, line, cnx):
         self.basic_params['T_currency'] = str(line[0])
         self.basic_params['T_asset'] = line[1]
-        self.basic_params['T_exchange'] = line[3].split()[0]
-        self.basic_params['T_strategy'] = line[2]
+        self.basic_params['T_strategy'] = line[3].split()[0]
+        self.basic_params['T_exchange'] = line[2]
         self.basic_params['percent_change'] = line[4]
         self.basic_params['market_change'] = line[5]
         self.basic_params['winning_trades'] = line[6]
@@ -31,6 +31,7 @@ class exporter:
         self.basic_params['T_start_date'] = line[13]
         self.basic_params['T_end_date'] = line[14]
         self.basic_params['T_note'] = line[16]
+        self.basic_params['profit_market_percent'] = line[17]
         self.basic_params['Initial_Assets'] = self.Initial_Assets
         self.basic_params['Initial_Currency'] = self.Initial_Currency
         self.basic_params['Days_In_Trade'] = self.daysInTrade;
@@ -67,7 +68,10 @@ class exporter:
                 create = create + ", " + str(param) + type + " NOT NULL"
 
             for param in sorted(self.strategy_params):
-                create = create + ", param_" + str(param) + " double NOT NULL"
+                if param[0] + param[1] == "T_":
+                    create = create + ", T_param_" + param[2:] + " tinytext NOT NULL"
+                else:
+                    create = create + ", param_" + str(param) + " double NOT NULL"
 
             create = create + ", PRIMARY KEY (Test_ID)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 DEFAULT " \
                               "COLLATE=utf8mb4_general_ci COMMENT='Contains backtests'"
@@ -82,7 +86,10 @@ class exporter:
                 pass
             else:
                 if current_Var != 'nope':
-                    self.strategy_params[current_Var] = float(word)
+                    if word[0].isnumeric() or word[0] == '-':
+                        self.strategy_params[current_Var] = float(word)
+                    else:
+                        self.strategy_params["T_"+current_Var] = word
                     current_Var = 'nope'
                 else:
                     if self.strategy_params.get(word, 'none') != 'none':
@@ -103,7 +110,10 @@ class exporter:
             sql += " , " + base_params_names[value]
 
         for value in range(0, len(strat_params_names)):
-            sql += " , param_" + strat_params_names[value]
+            if strat_params_names[value][0] + strat_params_names[value][1] == "T_":
+                sql += " , T_param_" + strat_params_names[value][2:]
+            else:
+                sql += " , param_" + strat_params_names[value]
 
         sql += " ) VALUES ( "
 
@@ -124,7 +134,11 @@ class exporter:
                     sql += " , " + str(self.basic_params[base_params_names[value]])
 
         for value in range(0, len(strat_params_names)):
-            sql += " , " + str(self.strategy_params[strat_params_names[value]])
+            if strat_params_names[value][0] + strat_params_names[value][1] == 'T_':
+                sql += " , '" + str(self.strategy_params[strat_params_names[value]]) + "' "
+            else:
+                sql += " , " + str(self.strategy_params[strat_params_names[value]])
+
 
         sql += " ); "
         print(sql)
